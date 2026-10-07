@@ -9,13 +9,14 @@
 :root{--lc:#2ec5ff}
 html,body{margin:0;width:100vw;height:100vh;overflow:hidden;background:transparent;font-family:Rajdhani,"Segoe UI",system-ui,sans-serif}
 body.preview{background:#141c2a}
-#cv{position:absolute;inset:0;width:100%;height:100%}
+.lz{width:150px;height:118px;display:block}
+.no-laser .lz{display:none}
 #ov{position:absolute;transition:opacity .4s}
 #ov.bottom-left{left:40px;bottom:40px;transform-origin:bottom left}
 #ov.bottom-right{right:40px;bottom:40px;transform-origin:bottom right}
 #ov.top-left{left:40px;top:40px;transform-origin:top left}
 #ov.top-right{right:40px;top:40px;transform-origin:top right}
-.hidden #ov,.hidden #cv{visibility:hidden}
+.hidden #ov{visibility:hidden}
 .pn{display:flex;gap:10px;align-items:flex-end}
 .kb{display:flex;flex-direction:column;gap:4px}
 .row{display:flex;gap:4px}
@@ -49,7 +50,6 @@ body.preview{background:#141c2a}
 </style>
 </head>
 <body>
-<canvas id="cv"></canvas>
 <div id="ov" class="bottom-left">
   <div class="pn" id="kbm">
     <div class="kb" id="kb"></div>
@@ -57,6 +57,7 @@ body.preview{background:#141c2a}
       <div class="kps">KPS<b id="kps">0</b></div>
       <div class="ms"><div class="mb" id="ml"></div><div class="mb" id="mr"></div></div>
     </div>
+    <canvas class="lz" id="lz"></canvas>
   </div>
   <div class="pad" id="pad"><div class="badge" id="badge"></div><div id="svgw"></div></div>
 </div>
@@ -121,19 +122,19 @@ function apply() {
   ov.style.transform = 'scale(' + S.size / 100 + ')';
   document.body.classList.toggle('mode-c', showingPad());
   document.body.classList.toggle('hidden', hidden);
+  document.body.classList.toggle('no-laser', !S.laser);
+  sizeLaser();
   drawPad();
 }
 
-/* ---------- laser ---------- */
-const cv = $('cv'), cx = cv.getContext('2d');
-let W, H, x, y, trail = [];
-function size() {
-  const p = devicePixelRatio || 1;
-  W = innerWidth; H = innerHeight;
+/* ---------- laser (lives in an invisible box next to the mouse) ---------- */
+const cv = $('lz'), cx = cv.getContext('2d');
+const W = 150, H = 118;
+let x = W / 2, y = H / 2, trail = [];
+function sizeLaser() {
+  const p = (devicePixelRatio || 1) * (S.size / 100);  // stay sharp when scaled up
   cv.width = W * p; cv.height = H * p; cx.setTransform(p, 0, 0, p, 0, 0);
-  x = W / 2; y = H / 2;
 }
-size(); addEventListener('resize', size);
 const rgba = (c, a) => { const n = parseInt(c.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
 function hsl2hex(h){const f=n=>{const k=(n+h/30)%12,v=0.5-0.5*Math.max(-1,Math.min(k-3,9-k,1));return Math.round(v*255).toString(16).padStart(2,'0')};return '#'+f(0)+f(8)+f(4)}
 
@@ -159,7 +160,7 @@ function onMsg(m) {
       if (el) el.classList.toggle('on', m.d); touch(); break;
     }
     case 'move':
-      x += m.dx * S.sensitivity; y += m.dy * S.sensitivity;
+      x += m.dx * S.sensitivity * 0.25; y += m.dy * S.sensitivity * 0.25;
       x = Math.max(8, Math.min(W - 8, x)); y = Math.max(8, Math.min(H - 8, y)); touch(); break;
     case 'pad': {
       m.b.forEach((v, i) => {
@@ -193,17 +194,17 @@ function loop(t) {
   x += (W / 2 - x) * 0.06; y += (H / 2 - y) * 0.06;
   trail.push([x, y]); if (trail.length > 34) trail.shift();
   cx.clearRect(0, 0, W, H);
-  if (!hidden && S.laser && !showingPad()) {
+  if (!hidden && S.laser && !showingPad()) {  // the box fades and hides with the keyboard
     cx.lineCap = 'round';
     for (let i = 1; i < trail.length; i++) {
       const a = i / trail.length;
-      cx.strokeStyle = rgba(col, a * a * 0.95); cx.lineWidth = 0.5 + a * 6;
+      cx.strokeStyle = rgba(col, a * a * 0.95); cx.lineWidth = 0.5 + a * 4;
       cx.beginPath(); cx.moveTo(trail[i-1][0], trail[i-1][1]); cx.lineTo(trail[i][0], trail[i][1]); cx.stroke();
     }
-    cx.fillStyle = rgba(col, 0.18); cx.beginPath(); cx.arc(x, y, 14, 0, 7); cx.fill();
-    cx.strokeStyle = rgba(col, 0.55); cx.lineWidth = 1; cx.beginPath(); cx.arc(x, y, 14, 0, 7); cx.stroke();
-    cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(x, y, 3.5, 0, 7); cx.fill();
-    cx.strokeStyle = col; cx.lineWidth = 2; cx.beginPath(); cx.arc(x, y, 5.5, 0, 7); cx.stroke();
+    cx.fillStyle = rgba(col, 0.18); cx.beginPath(); cx.arc(x, y, 10, 0, 7); cx.fill();
+    cx.strokeStyle = rgba(col, 0.55); cx.lineWidth = 1; cx.beginPath(); cx.arc(x, y, 10, 0, 7); cx.stroke();
+    cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(x, y, 2.5, 0, 7); cx.fill();
+    cx.strokeStyle = col; cx.lineWidth = 1.5; cx.beginPath(); cx.arc(x, y, 4, 0, 7); cx.stroke();
   }
   requestAnimationFrame(loop);
 }
