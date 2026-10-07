@@ -418,6 +418,15 @@ def make_app(hub: Hub) -> web.Application:
     async def overlay_page(request):
         return await page(request, "overlay.html")
 
+    fonts = {"Rajdhani-SemiBold.ttf", "Rajdhani-Bold.ttf"}
+
+    async def font_file(request: web.Request):
+        name = request.match_info["name"]
+        if request.host not in ALLOWED_HOSTS or name not in fonts:
+            raise web.HTTPNotFound()
+        return web.FileResponse(web_dir / "fonts" / name,
+                                headers={"Cache-Control": "max-age=86400"})
+
     async def ws_handler(request: web.Request):
         if not is_trusted(request):
             raise web.HTTPForbidden(text="Only the local overlay can connect.")
@@ -451,6 +460,7 @@ def make_app(hub: Hub) -> web.Application:
     app.router.add_get("/", settings_page)
     app.router.add_get("/overlay", overlay_page)
     app.router.add_get("/ws", ws_handler)
+    app.router.add_get("/fonts/{name}", font_file)
     return app
 
 

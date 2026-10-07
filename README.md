@@ -48,13 +48,33 @@ The app reads your keyboard, so it is built to keep that data local:
 - WebSocket connections are only accepted from the local overlay pages. Other websites are blocked by checking the `Origin` and `Host` headers, which also stops DNS rebinding.
 - Only the keys shown on the overlay are ever sent. Everything else you type is ignored.
 - Settings sent to the app are checked against allowed values before they are saved.
+- No outside requests: the font is bundled with the app, so the overlay never contacts the internet.
+
+## Supply chain security
+
+The build is locked down so a hacked package or action can't sneak into the exe:
+
+- `requirements.txt` pins every package (including the packages they depend on) to an exact version and its SHA-256 hash. pip refuses to install anything that doesn't match (`--require-hashes`).
+- GitHub Actions are pinned to exact commit SHAs instead of tags, because tags can be moved.
+- The build prints the SHA-256 of `InputGlow.exe`, so users can check their download matches.
+- Dependabot opens a pull request when safer versions are out. Nothing updates without a review.
+
+### Updating packages
+
+1. Change the version in `requirements.in`.
+2. Regenerate the locked file:
+
+```
+pip install uv
+uv pip compile requirements.in --generate-hashes --python-platform windows --python-version 3.12 -o requirements.txt
+```
 
 ## Run from source
 
-Needs Windows and Python 3.10 or newer.
+Needs Windows and Python 3.12.
 
 ```
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.txt
 python app.py
 ```
 
@@ -82,6 +102,10 @@ app.py              helper app: input reading, local server, settings
 web/overlay.html    the overlay OBS shows
 web/settings.html   settings page with live preview
 ```
+
+## Credits
+
+Rajdhani font by Indian Type Foundry, used under the SIL Open Font License (`web/fonts/OFL.txt`).
 
 ## License
 
