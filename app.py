@@ -1,10 +1,9 @@
 """
-InputGlow - a stream overlay that shows your keys, mouse and controller.
+InputGlow - a stream overlay that shows your keys and mouse.
 
 How it works:
   1. Reads keyboard and mouse with Windows Raw Input (read-only copy of input).
-  2. Reads controllers with SDL (through pygame-ce).
-  3. Serves the overlay page on http://localhost:8765 for an OBS Browser Source.
+  2. Serves the overlay page on http://localhost:8765 for an OBS Browser Source.
 
 It never touches game memory, never injects code, and never sends input.
 """
@@ -26,8 +25,6 @@ PORT = 8765
 DEFAULTS = {
     "color": "#2ec5ff",
     "rgb": False,
-    "mode": "auto",          # auto | keyboard | controller
-    "pad": "auto",           # auto | xbox | ps
     "corner": "bottom-left",  # bottom-left | bottom-right | top-left | top-right
     "size": 100,             # percent
     "laser": True,
@@ -86,7 +83,6 @@ class Hub:
         self.clients: set[web.WebSocketResponse] = set()
         self.settings = load_settings()
         self.hidden = False
-        self.pad_info = {"t": "padinfo", "name": None, "type": None}
         self.loop: asyncio.AbstractEventLoop | None = None
         self.queue: asyncio.Queue | None = None
         self._lock = threading.Lock()
@@ -122,8 +118,6 @@ class Hub:
     async def pump(self) -> None:
         while True:
             msg = await self.queue.get()
-            if msg.get("t") == "padinfo":
-                self.pad_info = msg
             await self.send_all(msg)
 
     async def flush_mouse(self) -> None:
@@ -289,80 +283,6 @@ def raw_input_thread(hub: Hub) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Controllers: SDL game controller API through pygame-ce
-# ---------------------------------------------------------------------------
-# SDL button number -> overlay button number (standard gamepad layout)
-SDL_TO_STD = {0: 0, 1: 1, 2: 2, 3: 3, 4: 8, 5: 16, 6: 9, 7: 10, 8: 11,
-              9: 4, 10: 5, 11: 12, 12: 13, 13: 14, 14: 15, 20: 17}
-
-
-def detect_type(name: str) -> str:
-    n = (name or "").lower()
-    ps_words = ("ps3", "ps4", "ps5", "playstation", "dualsense", "dualshock", "wireless controller")
-    return "ps" if any(w in n for w in ps_words) else "xbox"
-
-
-def gamepad_thread(hub: Hub) -> None:
-    os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"  # read pad while the game has focus
-    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
-    try:
-        import pygame
-        from pygame._sdl2 import controller
-    except ImportError as e:
-        print(f"Controller support is off (pygame-ce not installed): {e}")
-        return
-
-    pygame.display.init()  # needed for SDL events, no window is opened
-    controller.init()
-    pad = None
-    last_state = None
-    next_scan = 0.0
-
-    while True:
-        pygame.event.pump()
-        now = time.monotonic()
-
-        if pad is None and now >= next_scan:
-            next_scan = now + 1.0
-            for i in range(controller.get_count()):
-                if controller.is_controller(i):
-                    pad = controller.Controller(i)
-                    name = getattr(pad, "name", "Controller")
-                    print(f"Controller connected: {name}")
-                    hub.emit({"t": "padinfo", "name": name, "type": detect_type(name)})
-                    break
-
-        if pad is not None:
-            try:
-                if not pad.attached():
-                    raise RuntimeError("detached")
-                buttons = [0] * 18
-                for sdl, std in SDL_TO_STD.items():
-                    try:
-                        if pad.get_button(sdl):
-                            buttons[std] = 1
-                    except Exception:
-                        pass
-                lt = pad.get_axis(4) / 32767
-                rt = pad.get_axis(5) / 32767
-                buttons[6] = int(lt > 0.4)
-                buttons[7] = int(rt > 0.4)
-                axes = [round(pad.get_axis(i) / 32767, 2) for i in range(4)]
-                state = (tuple(buttons), tuple(axes))
-                if state != last_state:
-                    last_state = state
-                    if not hub.hidden:
-                        hub.emit({"t": "pad", "b": buttons, "a": axes})
-            except Exception:
-                print("Controller disconnected")
-                pad = None
-                last_state = None
-                hub.emit({"t": "padinfo", "name": None, "type": None})
-
-        time.sleep(1 / 120)
-
-
-# ---------------------------------------------------------------------------
 # Web server
 # ---------------------------------------------------------------------------
 ALLOWED_ORIGINS = {f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"}
@@ -378,8 +298,6 @@ def is_trusted(request: web.Request) -> bool:
 
 
 CHOICES = {
-    "mode": {"auto", "keyboard", "controller"},
-    "pad": {"auto", "xbox", "ps"},
     "corner": {"bottom-left", "bottom-right", "top-left", "top-right"},
 }
 RANGES = {"size": (50, 200), "sensitivity": (0.05, 1.0), "fadeSeconds": (1, 30)}
@@ -434,7 +352,7 @@ def make_app(hub: Hub) -> web.Application:
         await ws.prepare(request)
         hub.clients.add(ws)
         await ws.send_str(json.dumps({"t": "hello", "settings": hub.settings,
-                                      "hidden": hub.hidden, "pad": hub.pad_info}))
+                                      "hidden": hub.hidden}))
         try:
             async for msg in ws:
                 if msg.type != WSMsgType.TEXT:
@@ -481,7 +399,6 @@ async def main() -> None:
         threading.Thread(target=raw_input_thread, args=(hub,), daemon=True).start()
     else:
         print("Keyboard and mouse reading only works on Windows. Server runs for testing.")
-    threading.Thread(target=gamepad_thread, args=(hub,), daemon=True).start()
     asyncio.create_task(hub.pump())
     asyncio.create_task(hub.flush_mouse())
 

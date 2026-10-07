@@ -1,10 +1,9 @@
 # InputGlow
 
-A gamer-style stream overlay that shows your **keys**, **mouse** and **controller** live in OBS.
+A gamer-style stream overlay that shows your **keys** and **mouse** live in OBS. Built for mouse and keyboard players.
 
 - Glass keys for the left side of the keyboard (Esc to B, plus Ctrl, Alt and Space)
-- A laser dot with a fading tail that follows your mouse movement
-- Xbox and PlayStation controller drawings that light up as you press
+- A laser dot with a fading tail, in its own box next to the keys so your crosshair stays clear
 - Live keys-per-second counter
 - RGB mode or any theme colour
 
@@ -25,7 +24,6 @@ Press **F8** any time to hide the overlay, for example before typing a password.
 | Privacy hotkey | F8 hides everything and stops sending input |
 | Auto-fade | Dims the overlay when you are idle |
 | Position and size | Pick a corner and size in settings, or move it in OBS |
-| Controller mode | Auto-detects Xbox or PlayStation and draws the right layout |
 | Theme colour | Pick a colour, a custom colour, or RGB mode |
 
 ## Safe for anti-cheat by design
@@ -36,9 +34,18 @@ InputGlow only **reads** input. It never:
 - injects code into a game
 - sends or changes any input
 
-Keyboard and mouse are read with the Windows **Raw Input** API, which gives a read-only copy of input without sitting in the input chain. Controllers are read with SDL.
+Keyboard and mouse are read with the Windows **Raw Input** API, which gives a read-only copy of input without sitting in the input chain.
+
+Controller support was removed on purpose: reading controllers in the background works like remapping tools do, which some anti-cheats flag. Keeping the app to mouse and keyboard keeps it as simple and safe as possible.
 
 Strict anti-cheats (for example Vanguard or FACEIT) can be cautious with any background input reader, so test in a casual match first.
+
+## Troubleshooting
+
+- **Don't run InputGlow as administrator.** It never needs it, and anti-cheats are stricter with admin tools.
+- **Anti-cheat error in a game?** Close InputGlow, verify the game files (Steam: right-click the game, Properties, Installed Files, Verify integrity), and play a match without it. If the error only happens with InputGlow open, please open an issue with the game name and error.
+- **Remapping tools** (like reWASD) are a common cause of anti-cheat errors even when they're not running.
+- **Port 8765 busy?** InputGlow is probably already open. Check for its black window or close it in Task Manager.
 
 ## Security
 
