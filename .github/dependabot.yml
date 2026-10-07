@@ -1,0 +1,12 @@
+# Dependabot checks weekly for safer, newer versions and opens a pull request.
+# Nothing changes until you review and merge it.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
