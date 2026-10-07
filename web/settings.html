@@ -51,11 +51,10 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--lc)}
   <div class="top">
     <div>
       <h1>Input<span>Glow</span></h1>
-      <p class="muted">Your keys, mouse and controller, live on stream.</p>
+      <p class="muted">Your keys and mouse, live on stream.</p>
     </div>
     <div class="status">
       <span class="pill" id="conn">Connecting…</span>
-      <span class="pill" id="padStatus">No controller</span>
     </div>
   </div>
 
@@ -90,20 +89,6 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--lc)}
           <option value="bottom-right">Bottom right</option>
           <option value="top-left">Top left</option>
           <option value="top-right">Top right</option>
-        </select>
-      </div>
-      <div class="field"><label for="mode">Show</label>
-        <select id="mode">
-          <option value="auto">Auto (controller when plugged in)</option>
-          <option value="keyboard">Keyboard and mouse</option>
-          <option value="controller">Controller</option>
-        </select>
-      </div>
-      <div class="field"><label for="pad">Controller type</label>
-        <select id="pad">
-          <option value="auto">Auto-detect</option>
-          <option value="xbox">Xbox</option>
-          <option value="ps">PlayStation</option>
         </select>
       </div>
       <div class="field"><label for="laser">Mouse laser</label><input type="checkbox" id="laser"></div>
@@ -153,7 +138,7 @@ function show() {
   document.body.style.setProperty('--lc', S.color);
   [...$('sws').querySelectorAll('.sw')].forEach(b => b.classList.toggle('sel', S.rgb ? b.dataset.c === 'rgb' : b.dataset.c === S.color));
   pick.value = S.color;
-  ['size', 'corner', 'mode', 'pad', 'sensitivity', 'fadeSeconds'].forEach(k => $(k).value = S[k]);
+  ['size', 'corner', 'sensitivity', 'fadeSeconds'].forEach(k => $(k).value = S[k]);
   ['laser', 'fade'].forEach(k => $(k).checked = S[k]);
   $('sizeV').textContent = S.size + '%';
   $('sensV').textContent = Number(S.sensitivity).toFixed(2);
@@ -161,7 +146,7 @@ function show() {
 }
 function send(part) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({t: 'settings', settings: part})); }
 
-['corner', 'mode', 'pad'].forEach(k => $(k).onchange = e => send({[k]: e.target.value}));
+['corner'].forEach(k => $(k).onchange = e => send({[k]: e.target.value}));
 ['laser', 'fade'].forEach(k => $(k).onchange = e => send({[k]: e.target.checked}));
 $('size').oninput = e => send({size: parseInt(e.target.value, 10)});
 $('sensitivity').oninput = e => send({sensitivity: parseFloat(e.target.value)});
@@ -169,10 +154,6 @@ $('fadeSeconds').oninput = e => send({fadeSeconds: parseInt(e.target.value, 10)}
 $('hide').onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({t: 'hide'})); };
 
 function setHidden(h) { $('hide').textContent = h ? 'Show overlay (F8)' : 'Hide overlay (F8)'; }
-function setPad(p) {
-  $('padStatus').textContent = p && p.name ? 'Controller: ' + p.name : 'No controller';
-  $('padStatus').classList.toggle('ok', !!(p && p.name));
-}
 
 function connect() {
   ws = new WebSocket('ws://' + location.host + '/ws');
@@ -180,10 +161,9 @@ function connect() {
   ws.onclose = () => { $('conn').textContent = 'InputGlow is closed'; $('conn').classList.remove('ok'); setTimeout(connect, 1000); };
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
-    if (m.t === 'hello') { S = m.settings; show(); setHidden(m.hidden); setPad(m.pad); }
+    if (m.t === 'hello') { S = m.settings; show(); setHidden(m.hidden); }
     else if (m.t === 'settings') { S = m.settings; show(); }
     else if (m.t === 'hidden') setHidden(m.v);
-    else if (m.t === 'padinfo') setPad(m);
   };
 }
 connect();

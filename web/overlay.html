@@ -35,18 +35,6 @@ body.preview{background:#141c2a}
 .mb{border-bottom:1px solid rgba(255,255,255,.25)}
 .mb:first-child{border-right:1px solid rgba(255,255,255,.25)}
 .mb.on{background:var(--lc)}
-.pad{display:none;flex-direction:column;align-items:center;gap:2px}
-.pad svg{overflow:visible;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
-.body{fill:rgba(12,16,28,.55);stroke:var(--lc);stroke-width:1.5}
-.b{fill:rgba(12,16,28,.8);stroke:rgba(255,255,255,.45);stroke-width:1;transition:fill .08s}
-.g.on{filter:drop-shadow(0 0 4px var(--lc))}
-.g.on>.b{fill:var(--lc);stroke:var(--lc)}
-.lb{font:700 9px Rajdhani,"Segoe UI",sans-serif;fill:var(--fc,rgba(255,255,255,.9));text-anchor:middle}
-.g.on .lb{fill:#05070c}
-.nub{fill:var(--lc)}
-.badge{font-size:12px;font-weight:700;letter-spacing:.08em;color:#fff;padding:2px 9px;border-radius:999px;background:rgba(12,16,28,.6);border:1px solid var(--lc);text-transform:uppercase}
-.mode-c #kbm{display:none}
-.mode-c #pad{display:flex}
 </style>
 </head>
 <body>
@@ -59,14 +47,13 @@ body.preview{background:#141c2a}
     </div>
     <canvas class="lz" id="lz"></canvas>
   </div>
-  <div class="pad" id="pad"><div class="badge" id="badge"></div><div id="svgw"></div></div>
 </div>
 <script>
 const $ = id => document.getElementById(id);
 if (new URLSearchParams(location.search).has('preview')) document.body.classList.add('preview');
 
-let S = {color:'#2ec5ff', rgb:false, mode:'auto', pad:'auto', corner:'bottom-left', size:100, laser:true, sensitivity:0.25, fade:true, fadeSeconds:3};
-let padInfo = {name:null, type:null}, hidden = false, lastIn = performance.now(), hue = 0, col = S.color;
+let S = {color:'#2ec5ff', rgb:false, corner:'bottom-left', size:100, laser:true, sensitivity:0.25, fade:true, fadeSeconds:3};
+let hidden = false, lastIn = performance.now(), hue = 0, col = S.color;
 const hits = [];
 const touch = () => { lastIn = performance.now(); };
 const hit = () => { hits.push(performance.now()); touch(); };
@@ -86,45 +73,15 @@ rows.forEach(r => {
   $('kb').appendChild(d);
 });
 
-/* ---------- controller drawings ---------- */
-const R=(i,x,y,w,h,rx,l,fc)=>'<g class="g" data-i="'+i+'"'+(fc?' style="--fc:'+fc+'"':'')+'><rect class="b" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'"/>'+(l?'<text class="lb" x="'+(x+w/2)+'" y="'+(y+h/2+3)+'">'+l+'</text>':'')+'</g>';
-const C=(i,cx,cy,r,l,fc)=>'<g class="g" data-i="'+i+'"'+(fc?' style="--fc:'+fc+'"':'')+'><circle class="b" cx="'+cx+'" cy="'+cy+'" r="'+r+'"/>'+(l?'<text class="lb" x="'+cx+'" y="'+(cy+3)+'">'+l+'</text>':'')+'</g>';
-const ST=(i,cx,cy,r,id)=>'<g class="g" data-i="'+i+'"><circle class="b" cx="'+cx+'" cy="'+cy+'" r="'+r+'"/><circle class="nub" id="'+id+'" cx="'+cx+'" cy="'+cy+'" r="'+(r*0.55)+'"/></g>';
-const D=(cx,cy)=>R(12,cx-5.5,cy-17,11,12,2,'')+R(13,cx-5.5,cy+5,11,12,2,'')+R(14,cx-17,cy-5.5,12,11,2,'')+R(15,cx+5,cy-5.5,12,11,2,'');
-const xbox=()=>'<svg viewBox="0 0 260 172" width="260" height="172">'+R(6,58,4,38,15,5,'LT')+R(7,164,4,38,15,5,'RT')+R(4,44,22,60,12,6,'LB')+R(5,156,22,60,12,6,'RB')+
-'<path class="body" d="M62 36C92 28 168 28 198 36C228 44 250 88 254 130C257 156 238 168 221 158C204 148 196 130 180 124L80 124C64 130 56 148 39 158C22 168 3 156 6 130C10 88 32 44 62 36Z"/>'+
-ST(10,76,72,17,'ln')+D(104,104)+ST(11,156,104,15,'rn')+C(16,130,52,7,'')+R(8,111,66,12,8,4,'')+R(9,137,66,12,8,4,'')+
-C(3,186,58,8,'Y','#ffd23b')+C(2,171,73,8,'X','#2ec5ff')+C(1,201,73,8,'B','#ff4b4b')+C(0,186,88,8,'A','#3bff6f')+'</svg>';
-const ps=()=>'<svg viewBox="0 0 260 172" width="260" height="172">'+R(6,54,4,40,15,5,'L2')+R(7,166,4,40,15,5,'R2')+R(4,44,22,58,11,4,'L1')+R(5,158,22,58,11,4,'R1')+
-'<path class="body" d="M56 36L204 36C232 36 249 80 254 126C258 154 240 168 223 158C210 150 200 132 184 126L76 126C60 132 50 150 37 158C20 168 2 154 6 126C11 80 28 36 56 36Z"/>'+
-R(17,102,42,56,34,6,'')+D(66,72)+ST(10,100,104,14,'ln')+ST(11,160,104,14,'rn')+C(16,130,96,5,'')+R(8,88,44,8,13,3,'')+R(9,164,44,8,13,3,'')+
-C(3,194,56,8,'△','#3bffb0')+C(2,179,71,8,'□','#ff7ad9')+C(1,209,71,8,'○','#ff5a5a')+C(0,194,86,8,'✕','#7ab8ff')+'</svg>';
-
-let padType = null, padBtns = {}, padPrev = [];
-function drawPad() {
-  const t = S.pad === 'auto' ? (padInfo.type === 'ps' ? 'p' : 'x') : (S.pad === 'ps' ? 'p' : 'x');
-  if (t === padType) return;
-  padType = t;
-  $('svgw').innerHTML = t === 'p' ? ps() : xbox();
-  $('badge').textContent = t === 'p' ? 'PlayStation' : 'Xbox';
-  padBtns = {};
-  $('svgw').querySelectorAll('.g').forEach(g => padBtns[g.dataset.i] = g);
-}
-
 /* ---------- settings ---------- */
-function showingPad() {
-  return S.mode === 'controller' || (S.mode === 'auto' && !!padInfo.name);
-}
 function apply() {
   if (!S.rgb) { col = S.color; document.body.style.setProperty('--lc', col); }
   const ov = $('ov');
   ov.className = S.corner;
   ov.style.transform = 'scale(' + S.size / 100 + ')';
-  document.body.classList.toggle('mode-c', showingPad());
   document.body.classList.toggle('hidden', hidden);
   document.body.classList.toggle('no-laser', !S.laser);
   sizeLaser();
-  drawPad();
 }
 
 /* ---------- laser (lives in an invisible box next to the mouse) ---------- */
@@ -142,13 +99,10 @@ function hsl2hex(h){const f=n=>{const k=(n+h/30)%12,v=0.5-0.5*Math.max(-1,Math.m
 function onMsg(m) {
   switch (m.t) {
     case 'hello':
-      S = Object.assign(S, m.settings); hidden = m.hidden;
-      if (m.pad) padInfo = m.pad;
-      padType = null; apply(); break;
-    case 'settings': S = Object.assign(S, m.settings); padType = null; apply(); break;
+      S = Object.assign(S, m.settings); hidden = m.hidden; apply(); break;
+    case 'settings': S = Object.assign(S, m.settings); apply(); break;
     case 'hidden':
       hidden = m.v; document.querySelectorAll('.on').forEach(e => e.classList.remove('on')); apply(); break;
-    case 'padinfo': padInfo = m; padType = null; apply(); break;
     case 'key': {
       const k = keys[m.k]; if (!k) break;
       if (m.d && !k.classList.contains('on')) hit();
@@ -162,18 +116,6 @@ function onMsg(m) {
     case 'move':
       x += m.dx * S.sensitivity * 0.25; y += m.dy * S.sensitivity * 0.25;
       x = Math.max(8, Math.min(W - 8, x)); y = Math.max(8, Math.min(H - 8, y)); touch(); break;
-    case 'pad': {
-      m.b.forEach((v, i) => {
-        if (v && !padPrev[i]) hit();
-        const g = padBtns[i]; if (g) g.classList.toggle('on', !!v);
-      });
-      padPrev = m.b;
-      const dz = v => Math.abs(v) < 0.15 ? 0 : v;
-      const ln = $('ln'), rn = $('rn');
-      if (ln) ln.setAttribute('transform', 'translate(' + dz(m.a[0]) * 8 + ',' + dz(m.a[1]) * 8 + ')');
-      if (rn) rn.setAttribute('transform', 'translate(' + dz(m.a[2]) * 7 + ',' + dz(m.a[3]) * 7 + ')');
-      touch(); break;
-    }
   }
 }
 
@@ -194,7 +136,7 @@ function loop(t) {
   x += (W / 2 - x) * 0.06; y += (H / 2 - y) * 0.06;
   trail.push([x, y]); if (trail.length > 34) trail.shift();
   cx.clearRect(0, 0, W, H);
-  if (!hidden && S.laser && !showingPad()) {  // the box fades and hides with the keyboard
+  if (!hidden && S.laser) {  // the box fades and hides with the keyboard
     cx.lineCap = 'round';
     for (let i = 1; i < trail.length; i++) {
       const a = i / trail.length;
