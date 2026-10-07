@@ -26,19 +26,18 @@ Press **F8** any time to hide the overlay, for example before typing a password.
 | Position and size | Pick a corner and size in settings, or move it in OBS |
 | Theme colour | Pick a colour, a custom colour, or RGB mode |
 
-## Safe for anti-cheat by design
+## Anti-cheat
 
-InputGlow only **reads** input. It never:
+> **⚠️ No guarantee:** InputGlow is built to be as anti-cheat friendly as possible, but it is **not** approved by any game or anti-cheat company, and **nobody can guarantee** that an anti-cheat won't flag it. Anti-cheat rules are private and can change at any time. **Use it at your own risk**, and test it in a casual match before ranked.
 
-- touches or reads game memory
-- injects code into a game
-- sends or changes any input
+How InputGlow keeps the risk low:
 
-Keyboard and mouse are read with the Windows **Raw Input** API, which gives a read-only copy of input without sitting in the input chain.
+- It only **reads** input. It never touches or reads game memory, never injects code into a game, and never sends or changes any input.
+- Keyboard and mouse are read with the Windows **Raw Input** API, which gives a read-only copy of input without sitting in the input chain.
+- It **never needs administrator rights**.
+- Controller support was removed on purpose, to keep the app as simple as possible and avoid anything that works like a remapping tool.
 
-Controller support was removed on purpose: reading controllers in the background works like remapping tools do, which some anti-cheats flag. Keeping the app to mouse and keyboard keeps it as simple and safe as possible.
-
-Strict anti-cheats (for example Vanguard or FACEIT) can be cautious with any background input reader, so test in a casual match first.
+Tested by the developer in ranked Apex Legends matches with no issues. That's one person's experience, not a promise for every game.
 
 ## Troubleshooting
 
